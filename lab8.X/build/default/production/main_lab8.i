@@ -16,7 +16,7 @@
 #pragma config CPD = OFF
 #pragma config BOREN = OFF
 #pragma config IESO = OFF
-#pragma config FCMEN = OFF
+#pragma config FCMEN = ON
 #pragma config LVP = ON
 
 
@@ -2643,7 +2643,7 @@ typedef int16_t intptr_t;
 
 typedef uint16_t uintptr_t;
 # 33 "main_lab8.c" 2
-# 46 "main_lab8.c"
+# 45 "main_lab8.c"
 unsigned char nums_displays[] =
 {
     0b00111111,
@@ -2669,15 +2669,29 @@ void setup(void);
 
 void __attribute__((picinterrupt(("")))) isr(void)
 {
+
     if (T0IF==1)
     {
-        muxeo ++ ;
         a = ((contador/100)%10) ;
         b = ((contador/10)%10) ;
         c = (contador%10) ;
         T0IF=0;
     }
 
+
+    if (PIR1bits.ADIF==1)
+    {
+        if (ADCON0bits.CHS==11)
+
+            PORTA=ADRESH;
+
+        else
+
+            contador=ADRESH;
+
+
+        PIR1bits.ADIF=0;
+    }
 }
 
 
@@ -2687,12 +2701,13 @@ void __attribute__((picinterrupt(("")))) isr(void)
 void main(void)
 {
     setup();
-
-
+    _delay((unsigned long)((20)*(4000000/4000.0)));
+    ADCON0bits.GO = 1;
 
 
     while(1)
     {
+
 
         PORTC = nums_displays[a];
         PORTEbits.RE0 = 1;
@@ -2709,7 +2724,19 @@ void main(void)
         _delay((unsigned long)((10)*(4000000/4000.0)));
         PORTEbits.RE2 = 0;
 
+        if (ADCON0bits.GO==0)
+        {
+            if (ADCON0bits.CHS==11)
+            {
+                ADCON0bits.CHS=13;
+            }
+            else
 
+                ADCON0bits.CHS=11;
+                _delay((unsigned long)((100)*(4000000/4000000.0)));
+                ADCON0bits.GO = 1;
+
+        }
     }
 }
 
@@ -2720,16 +2747,16 @@ void setup(void)
 {
 
     ANSEL = 0X00;
-    ANSELH = 0X00;
+    ANSELH = 0b00110000;
 
 
     TRISA = 0X00;
-    TRISB = 0b0000011;
+    TRISB = 0b00110000;
     TRISC = 0X00;
     TRISE = 0x00;
 
     PORTA = 0X00;
-    PORTB = 0b00000011;
+    PORTB = 0b00110000;
     PORTC = 0X00;
     PORTE = 0x00;
 
@@ -2747,13 +2774,25 @@ void setup(void)
     OPTION_REGbits.PS0=1;
 
 
+    ADCON1bits.ADFM = 0 ;
+    ADCON1bits.VCFG0 = 0 ;
+    ADCON1bits.VCFG1 = 0 ;
+
+    ADCON0bits.ADCS = 0b01 ;
+    ADCON0bits.CHS = 11;
+    _delay((unsigned long)((50)*(4000000/4000000.0)));
+    ADCON0bits.ADON = 1 ;
+
 
     INTCONbits.GIE=1;
+    INTCONbits.PEIE=1 ;
     INTCONbits.T0IE=1;
     INTCONbits.TMR0IF=0;
     INTCONbits.TMR0IE=1;
     INTCONbits.RBIF=0;
 
+    PIE1bits.ADIE = 1 ;
+    PIR1bits.ADIF = 0;
 
-
+    return;
 }
